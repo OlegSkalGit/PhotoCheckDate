@@ -1,0 +1,19 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Declare files that will always have LF line endings on checkout
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+LICENSE text eol=lf
+.gitattributes text eol=lf
+
+# Denote binary files (prevent git from modifying their line endings)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.heic binary
+*.mp4 binary
+*.mov binary
+*.mp3 binary
+*.wav binary
