@@ -1,12 +1,17 @@
 # Set default behavior to automatically normalize line endings
-* text=auto
+* text=auto eol=crlf
+
+# Batch files must always use CRLF line endings
+*.bat text eol=crlf
+*.cmd text eol=crlf
 
 # Declare files that will always have LF line endings on checkout
-*.py text eol=lf
-*.md text eol=lf
-*.txt text eol=lf
-LICENSE text eol=lf
-.gitattributes text eol=lf
+*.py text
+*.md text
+*.txt text
+*.json text
+LICENSE text
+.gitattributes text
 
 # Denote binary files (prevent git from modifying their line endings)
 *.png binary

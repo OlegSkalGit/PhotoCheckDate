@@ -48,6 +48,37 @@ THEMES = {
     }
 }
 
+import json
+
+CONFIG_FILE = "config.json"
+
+def load_config():
+    defaults = {
+        'theme': 'dark',
+        'source_path': '',
+        'destination_path': ''
+    }
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                defaults.update(config)
+        except Exception:
+            pass
+    return defaults
+
+def save_config(theme, source_path, destination_path):
+    try:
+        config = {
+            'theme': theme,
+            'source_path': source_path,
+            'destination_path': destination_path
+        }
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+    except Exception:
+        pass
+
 def check_dependencies():
     """Check if mandatory libraries are installed."""
     try:
@@ -530,12 +561,29 @@ class PhotoCheckDateApp:
             except Exception:
                 pass
                 
-        self.current_theme = 'dark'
+        # Load config
+        self.config = load_config()
+        self.current_theme = self.config['theme']
+        
         self.help_window = None
         self.help_text_widget = None
         
         self.create_widgets()
+        
+        # Populate entries from config
+        if self.config['source_path']:
+            self.src_entry.insert(0, self.config['source_path'])
+        if self.config['destination_path']:
+            self.dest_entry.insert(0, self.config['destination_path'])
+            
         self.apply_current_theme()
+        
+        # Bind window close event to save settings
+        self.root.protocol("WM_DELETE_WINDOW", self.on_exit)
+
+    def on_exit(self):
+        save_config(self.current_theme, self.src_entry.get().strip(), self.dest_entry.get().strip())
+        self.root.destroy()
 
     def create_widgets(self):
         # Grid settings
@@ -637,6 +685,7 @@ class PhotoCheckDateApp:
     def toggle_theme(self):
         self.current_theme = 'light' if self.current_theme == 'dark' else 'dark'
         self.apply_current_theme()
+        save_config(self.current_theme, self.src_entry.get().strip(), self.dest_entry.get().strip())
 
     def apply_current_theme(self):
         colors = THEMES[self.current_theme]
@@ -783,6 +832,9 @@ class PhotoCheckDateApp:
             messagebox.showerror("Помилка", "Будь ласка, вкажіть папку результатів.")
             return
             
+        # Save settings to config
+        save_config(self.current_theme, src_path, dest_path)
+        
         src_abs = os.path.abspath(src_path)
         dest_abs = os.path.abspath(dest_path)
         
@@ -868,7 +920,11 @@ class PhotoCheckDateApp:
                     if date_found:
                         source_info = "метадані аудіо (ID3)"
             
-            target_file = os.path.join(dest_dir, rel_path)
+            if date_found:
+                target_file = os.path.join(dest_dir, rel_path)
+            else:
+                target_file = os.path.join(dest_dir, "ДАТУ НЕ ВИЗНАЧЕНО", rel_path)
+                
             target_dir = os.path.dirname(target_file)
             
             try:
@@ -881,7 +937,7 @@ class PhotoCheckDateApp:
                     self.log(f"  -> Знайдено дату: {date_found.strftime('%Y-%m-%d %H:%M:%S')} ({source_info}). Атрибути встановлено.", "SUCCESS")
                     success_count += 1
                 else:
-                    self.log(f"  -> Дату не знайдено. Файл скопійовано.", "WARNING")
+                    self.log(f"  -> Дату не знайдено. Файл скопійовано у папку 'ДАТУ НЕ ВИЗНАЧЕНО'.", "WARNING")
             except Exception as e:
                 self.log(f"  -> Помилка: {str(e)}", "ERROR")
                 
