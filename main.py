@@ -593,7 +593,7 @@ class PhotoCheckDateApp:
         # 1. Header frame
         self.header_frame = tk.Frame(self.root)
         self.header_frame.is_card = False
-        self.header_frame.grid(row=0, column=0, fill='x', padx=15, pady=10)
+        self.header_frame.grid(row=0, column=0, sticky='we', padx=15, pady=10)
         self.header_frame.columnconfigure(0, weight=1)
         
         self.title_label = tk.Label(self.header_frame, text="PhotoCheckDate 📷", font=("Segoe UI", 16, "bold"))
@@ -616,7 +616,7 @@ class PhotoCheckDateApp:
         # 2. Paths inputs frame
         self.content_frame = tk.Frame(self.root, padx=15, pady=15)
         self.content_frame.is_card = True
-        self.content_frame.grid(row=1, column=0, fill='x', padx=15, pady=5)
+        self.content_frame.grid(row=1, column=0, sticky='we', padx=15, pady=5)
         self.content_frame.columnconfigure(1, weight=1)
         
         # Source Files path
@@ -624,7 +624,7 @@ class PhotoCheckDateApp:
         self.src_label.grid(row=0, column=0, sticky='w', pady=(5, 2))
         
         self.src_entry = tk.Entry(self.content_frame, font=("Segoe UI", 10), relief='flat', bd=1, highlightthickness=1)
-        self.src_entry.grid(row=1, column=0, columnspan=2, fill='x', sticky='we', ipady=4, padx=(0, 5))
+        self.src_entry.grid(row=1, column=0, columnspan=2, sticky='we', ipady=4, padx=(0, 5))
         
         self.src_browse_btn = tk.Button(self.content_frame, text="Огляд...", font=("Segoe UI", 10), command=self.browse_src, padx=10)
         self.src_browse_btn.grid(row=1, column=2, sticky='e', ipady=2)
@@ -638,7 +638,7 @@ class PhotoCheckDateApp:
         self.dest_label.grid(row=3, column=0, sticky='w', pady=(5, 2))
         
         self.dest_entry = tk.Entry(self.content_frame, font=("Segoe UI", 10), relief='flat', bd=1, highlightthickness=1)
-        self.dest_entry.grid(row=4, column=0, columnspan=2, fill='x', sticky='we', ipady=4, padx=(0, 5))
+        self.dest_entry.grid(row=4, column=0, columnspan=2, sticky='we', ipady=4, padx=(0, 5))
         
         self.dest_browse_btn = tk.Button(self.content_frame, text="Огляд...", font=("Segoe UI", 10), command=self.browse_dest, padx=10)
         self.dest_browse_btn.grid(row=4, column=2, sticky='e', ipady=2)
@@ -650,7 +650,7 @@ class PhotoCheckDateApp:
         # 3. Log console frame
         self.log_frame = tk.Frame(self.root, padx=15, pady=5)
         self.log_frame.is_card = True
-        self.log_frame.grid(row=2, column=0, fill='both', padx=15, pady=5)
+        self.log_frame.grid(row=2, column=0, sticky='nsew', padx=15, pady=5)
         self.log_frame.columnconfigure(0, weight=1)
         self.log_frame.rowconfigure(1, weight=1)
         
@@ -658,12 +658,12 @@ class PhotoCheckDateApp:
         self.log_label.grid(row=0, column=0, sticky='w', pady=(0, 2))
         
         self.log_console = ScrolledText(self.log_frame, font=("Courier New", 9), wrap='word', state='disabled', relief='flat', bd=0)
-        self.log_console.grid(row=1, column=0, fill='both', sticky='nsew')
+        self.log_console.grid(row=1, column=0, sticky='nsew')
         
         # 4. Progress and start processing frame
         self.control_frame = tk.Frame(self.root, padx=15, pady=10)
         self.control_frame.is_card = False
-        self.control_frame.grid(row=3, column=0, fill='x', padx=15, pady=10)
+        self.control_frame.grid(row=3, column=0, sticky='we', padx=15, pady=10)
         self.control_frame.columnconfigure(0, weight=1)
         
         self.progress_label = tk.Label(self.control_frame, text="Готово до роботи", font=("Segoe UI", 9))
@@ -671,16 +671,16 @@ class PhotoCheckDateApp:
         self.progress_label.grid(row=0, column=0, sticky='w', pady=(0, 2))
         
         self.progress_bar = ttk.Progressbar(self.control_frame, orient="horizontal", mode="determinate")
-        self.progress_bar.grid(row=1, column=0, fill='x', sticky='we', pady=(0, 10))
+        self.progress_bar.grid(row=1, column=0, sticky='we', pady=(0, 10))
         
         self.action_btn_frame = tk.Frame(self.control_frame)
         self.action_btn_frame.is_card = False
-        self.action_btn_frame.grid(row=2, column=0, fill='x')
+        self.action_btn_frame.grid(row=2, column=0, sticky='we')
         self.action_btn_frame.columnconfigure(0, weight=1)
         
         self.start_btn = tk.Button(self.action_btn_frame, text="Запустити обробку 🚀", font=("Segoe UI", 11, "bold"), command=self.start_processing, padx=20, pady=10)
         self.start_btn.is_primary = True
-        self.start_btn.grid(row=0, column=0, fill='x')
+        self.start_btn.grid(row=0, column=0, sticky='we')
 
     def toggle_theme(self):
         self.current_theme = 'light' if self.current_theme == 'dark' else 'dark'
@@ -756,7 +756,7 @@ class PhotoCheckDateApp:
         self.help_window.rowconfigure(0, weight=1)
         
         self.help_text_widget = ScrolledText(self.help_window, font=("Segoe UI", 10), wrap='word', relief='flat', bd=0, padx=15, pady=15)
-        self.help_text_widget.grid(row=0, column=0, fill='both', sticky='nsew', padx=10, pady=10)
+        self.help_text_widget.grid(row=0, column=0, sticky='nsew', padx=10, pady=10)
         
         self.configure_text_tags(self.help_text_widget, colors)
         render_markdown_in_text(self.help_text_widget, self.readme_content)
