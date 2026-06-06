@@ -920,24 +920,29 @@ class PhotoCheckDateApp:
                     if date_found:
                         source_info = "метадані аудіо (ID3)"
             
-            if date_found:
-                target_file = os.path.join(dest_dir, rel_path)
-            else:
-                target_file = os.path.join(dest_dir, "ДАТУ НЕ ВИЗНАЧЕНО", rel_path)
-                
+            # 3. Oldest filesystem attribute (Final fallback)
+            if not date_found:
+                try:
+                    mtime = os.path.getmtime(src_file)
+                    ctime = os.path.getctime(src_file)
+                    oldest = min(mtime, ctime)
+                    date_found = datetime.datetime.fromtimestamp(oldest)
+                    source_info = "найстаріший системний атрибут"
+                except Exception:
+                    date_found = datetime.datetime.now()
+                    source_info = "поточний час (помилка зчитування атрибутів)"
+            
+            target_file = os.path.join(dest_dir, rel_path)
             target_dir = os.path.dirname(target_file)
             
             try:
                 os.makedirs(target_dir, exist_ok=True)
                 shutil.copy2(src_file, target_file)
                 
-                if date_found:
-                    # Apply attributes
-                    set_file_times(target_file, date_found)
-                    self.log(f"  -> Знайдено дату: {date_found.strftime('%Y-%m-%d %H:%M:%S')} ({source_info}). Атрибути встановлено.", "SUCCESS")
-                    success_count += 1
-                else:
-                    self.log(f"  -> Дату не знайдено. Файл скопійовано у папку 'ДАТУ НЕ ВИЗНАЧЕНО'.", "WARNING")
+                # Apply attributes
+                set_file_times(target_file, date_found)
+                self.log(f"  -> Встановлено дату: {date_found.strftime('%Y-%m-%d %H:%M:%S')} ({source_info}).", "SUCCESS")
+                success_count += 1
             except Exception as e:
                 self.log(f"  -> Помилка: {str(e)}", "ERROR")
                 
