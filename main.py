@@ -188,12 +188,22 @@ def find_mvhd(f, end_pos):
             break
         
         size, atom_type = struct.unpack(">I4s", header)
-        box_end = f.tell() - 8 + size
+        
+        # Handle special size properties to avoid infinite loops on corrupted files
+        if size == 0:
+            box_end = end_pos
+        elif size < 8:
+            break
+        else:
+            box_end = f.tell() - 8 + size
+            
         if size == 1:
             large_size_bytes = f.read(8)
             if len(large_size_bytes) < 8:
                 break
             size = struct.unpack(">Q", large_size_bytes)[0]
+            if size < 16:
+                break
             box_end = f.tell() - 16 + size
         
         if atom_type == b'moov':
