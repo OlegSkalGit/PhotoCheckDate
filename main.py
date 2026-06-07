@@ -94,7 +94,7 @@ def extract_date_from_filename(filename):
     # 1. YYYYMMDD_HHMMSS patterns (e.g. IMG_20231024_153022.jpg, 2023-10-24_15-30-22)
     pattern_dt = re.compile(
         r'(?P<year>(?:19|20)\d{2})[-_.]?(?P<month>0[1-9]|1[0-2])[-_.]?(?P<day>0[1-9]|[12]\d|3[01])'
-        r'[-_.\s]+'
+        r'[-_.\s]*'
         r'(?P<hour>[01]\d|2[0-3])[-_.:]?(?P<minute>[0-5]\d)[-_.:]?(?P<second>[0-5]\d)'
     )
     match = pattern_dt.search(name)
@@ -170,12 +170,17 @@ def extract_date_from_filename(filename):
         except ValueError:
             pass
 
-    # 3. Unix timestamp (10 or 13 digits)
-    pattern_ts = re.compile(r'(?<!\d)(?P<ts>\d{10}|\d{13})(?!\d)')
+    # 3. Unix timestamp (10, 13, 16, or 19 digits)
+    pattern_ts = re.compile(r'(?<!\d)(?P<ts>\d{10}|\d{13}|\d{16}|\d{19})(?!\d)')
     for match in pattern_ts.finditer(name):
         val = int(match.group('ts'))
-        if len(match.group('ts')) == 13:
+        length = len(match.group('ts'))
+        if length == 13:
             val = val // 1000
+        elif length == 16:
+            val = val // 1000000
+        elif length == 19:
+            val = val // 1000000000
         # Check if timestamp is within a reasonable range (1995 to 2038)
         if 788918400 < val < 2147483647:
             try:
