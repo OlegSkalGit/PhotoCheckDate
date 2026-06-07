@@ -922,24 +922,35 @@ class PhotoCheckDateApp:
             source_info = ""
             
             # 1. Google Photos Takeout JSON sidecar (Priority)
-            json_paths = [
-                src_file + ".json",
-                src_file + ".supplemental-metadata.json",
-                src_file + ".supplemental-meta.json",
-                os.path.splitext(src_file)[0] + ".json",
-                os.path.splitext(src_file)[0] + ".supplemental-metadata.json",
-                os.path.splitext(src_file)[0] + ".supplemental-meta.json"
-            ]
+            dir_name = os.path.dirname(src_file)
+            base_name = os.path.basename(src_file)
+            base_name_no_ext = os.path.splitext(base_name)[0]
+            json_paths = []
+            try:
+                if os.path.exists(dir_name):
+                    for entry in os.listdir(dir_name):
+                        entry_lower = entry.lower()
+                        if entry_lower.endswith('.json') and (
+                            entry_lower.startswith(base_name.lower()) or 
+                            entry_lower.startswith(base_name_no_ext.lower())
+                        ):
+                            json_paths.append(os.path.join(dir_name, entry))
+            except Exception:
+                pass
+
             for jp in json_paths:
                 if os.path.exists(jp):
                     try:
                         with open(jp, 'r', encoding='utf-8') as jf:
                             meta = json.load(jf)
-                            ts = meta.get('photoTakenTime', {}).get('timestamp') or meta.get('creationTime', {}).get('timestamp')
-                            if ts:
-                                date_found = datetime.datetime.fromtimestamp(int(ts))
-                                source_info = "Google Photos метадані (JSON)"
-                                break
+                            # Verify that the title inside JSON matches the media filename
+                            title = meta.get('title')
+                            if title and title.strip().lower() == base_name.lower():
+                                ts = meta.get('photoTakenTime', {}).get('timestamp') or meta.get('creationTime', {}).get('timestamp')
+                                if ts:
+                                    date_found = datetime.datetime.fromtimestamp(int(ts))
+                                    source_info = "Google Photos метадані (JSON)"
+                                    break
                     except Exception:
                         pass
             
