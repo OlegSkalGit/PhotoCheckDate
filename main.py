@@ -600,8 +600,8 @@ class PhotoCheckDateApp:
     def __init__(self, root):
         self.root = root
         self.root.title("PhotoCheckDate - Упорядкування та відновлення дат")
-        self.root.geometry("700x650")
-        self.root.minsize(600, 550)
+        self.root.geometry("700x330")
+        self.root.minsize(600, 330)
         
         # Center main window on screen
         self.root.update_idletasks()
