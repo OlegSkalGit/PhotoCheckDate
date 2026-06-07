@@ -26,7 +26,7 @@
 Програма намагається визначити точну дату та час створення файлу за наступним пріоритетним списком:
 
 ### 1. Супутні файли Google Takeout JSON (Найвищий пріоритет)
-Якщо є супутній файл `.json` або `.supplemental-metadata.json` (наприклад, `photo.jpg.json`, `photo.json`, `photo.jpg.supplemental-metadata.json` або `photo.supplemental-metadata.json`), який створюється при експорті з Google Photos Takeout:
+Якщо є супутній файл `.json`, `.supplemental-metadata.json` або `.supplemental-meta.json` (наприклад, `photo.jpg.json`, `photo.json`, `photo.jpg.supplemental-metadata.json`, `photo.jpg.supplemental-meta.json` тощо), який створюється при експорті з Google Photos Takeout:
 *   Видобувається позначка `photoTakenTime` або `creationTime` та використовується як оригінальна дата зйомки.
 
 ### 2. Ім'я файлу (Другий пріоритет)

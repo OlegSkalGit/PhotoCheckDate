@@ -925,8 +925,10 @@ class PhotoCheckDateApp:
             json_paths = [
                 src_file + ".json",
                 src_file + ".supplemental-metadata.json",
+                src_file + ".supplemental-meta.json",
                 os.path.splitext(src_file)[0] + ".json",
-                os.path.splitext(src_file)[0] + ".supplemental-metadata.json"
+                os.path.splitext(src_file)[0] + ".supplemental-metadata.json",
+                os.path.splitext(src_file)[0] + ".supplemental-meta.json"
             ]
             for jp in json_paths:
                 if os.path.exists(jp):
