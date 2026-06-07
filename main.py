@@ -921,12 +921,33 @@ class PhotoCheckDateApp:
             date_found = None
             source_info = ""
             
-            # 1. Filename (Priority)
-            date_found = extract_date_from_filename(filename)
-            if date_found:
-                source_info = "ім'я файлу"
+            # 1. Google Photos Takeout JSON sidecar (Priority)
+            json_paths = [
+                src_file + ".json",
+                src_file + ".supplemental-metadata.json",
+                os.path.splitext(src_file)[0] + ".json",
+                os.path.splitext(src_file)[0] + ".supplemental-metadata.json"
+            ]
+            for jp in json_paths:
+                if os.path.exists(jp):
+                    try:
+                        with open(jp, 'r', encoding='utf-8') as jf:
+                            meta = json.load(jf)
+                            ts = meta.get('photoTakenTime', {}).get('timestamp') or meta.get('creationTime', {}).get('timestamp')
+                            if ts:
+                                date_found = datetime.datetime.fromtimestamp(int(ts))
+                                source_info = "Google Photos метадані (JSON)"
+                                break
+                    except Exception:
+                        pass
             
-            # 2. Metadata EXIF / Containers (Fallback)
+            # 2. Filename (Fallback)
+            if not date_found:
+                date_found = extract_date_from_filename(filename)
+                if date_found:
+                    source_info = "ім'я файлу"
+            
+            # 3. Metadata EXIF / Containers (Fallback)
             if not date_found:
                 if ext in photo_exts:
                     date_found = get_photo_creation_time(src_file)
@@ -940,27 +961,6 @@ class PhotoCheckDateApp:
                     date_found = get_mp3_creation_time(src_file)
                     if date_found:
                         source_info = "метадані аудіо (ID3)"
-            
-            # 2b. Google Photos Takeout JSON sidecar (Fallback before filesystem)
-            if not date_found:
-                json_paths = [
-                    src_file + ".json",
-                    src_file + ".supplemental-metadata.json",
-                    os.path.splitext(src_file)[0] + ".json",
-                    os.path.splitext(src_file)[0] + ".supplemental-metadata.json"
-                ]
-                for jp in json_paths:
-                    if os.path.exists(jp):
-                        try:
-                            with open(jp, 'r', encoding='utf-8') as jf:
-                                meta = json.load(jf)
-                                ts = meta.get('photoTakenTime', {}).get('timestamp') or meta.get('creationTime', {}).get('timestamp')
-                                if ts:
-                                    date_found = datetime.datetime.fromtimestamp(int(ts))
-                                    source_info = "Google Photos метадані (JSON)"
-                                    break
-                        except Exception:
-                            pass
 
             # 3. Oldest filesystem attribute (Final fallback)
             if not date_found:
