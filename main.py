@@ -55,8 +55,7 @@ CONFIG_FILE = "config.json"
 def load_config():
     defaults = {
         'theme': 'dark',
-        'source_path': '',
-        'destination_path': ''
+        'source_path': ''
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -67,12 +66,11 @@ def load_config():
             pass
     return defaults
 
-def save_config(theme, source_path, destination_path):
+def save_config(theme, source_path):
     try:
         config = {
             'theme': theme,
-            'source_path': source_path,
-            'destination_path': destination_path
+            'source_path': source_path
         }
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=4, ensure_ascii=False)
@@ -109,6 +107,52 @@ def extract_date_from_filename(filename):
             )
         except ValueError:
             pass
+
+    # 1b. YYMMDD_HHMMSS pattern (6-digit date and 6-digit time, e.g. 060423_153556)
+    pattern_6d = re.compile(
+        r'(?<!\d)(?P<year>\d{2})(?P<month>0[1-9]|1[0-2])(?P<day>0[1-9]|[12]\d|3[01])'
+        r'[-_.\s]+'
+        r'(?P<hour>[01]\d|2[0-3])(?P<minute>[0-5]\d)(?P<second>[0-5]\d)(?!\d)'
+    )
+    match = pattern_6d.search(name)
+    if match:
+        d = match.groupdict()
+        yy = int(d['year'])
+        year = 2000 + yy if yy < 70 else 1900 + yy
+        try:
+            return datetime.datetime(
+                year, int(d['month']), int(d['day']),
+                int(d['hour']), int(d['minute']), int(d['second'])
+            )
+        except ValueError:
+            pass
+
+    # 1c. DD Month YYYY pattern (e.g. 16 серпня 2006, 16 августа 2006)
+    pattern_text = re.compile(
+        r'(?<!\d)(?P<day>\d{1,2})\s+(?P<month_name>[а-яА-ЯёЁїЇіІєЄґҐa-zA-Z]{3,10})\s+(?P<year>(?:19|20)\d{2})(?!\d)'
+    )
+    match = pattern_text.search(name)
+    if match:
+        d = match.groupdict()
+        months_map = {
+            # Ukrainian
+            'січ': 1, 'лют': 2, 'бер': 3, 'кві': 4, 'тра': 5, 'чер': 6,
+            'лип': 7, 'сер': 8, 'вер': 9, 'жов': 10, 'лис': 11, 'гру': 12,
+            # Russian
+            'янв': 1, 'фев': 2, 'мар': 3, 'апр': 4, 'май': 5, 'мая': 5, 'июн': 6,
+            'июл': 7, 'авг': 8, 'сен': 9, 'окт': 10, 'ноя': 11, 'дек': 12
+        }
+        prefix = d['month_name'].lower()[:3]
+        month = months_map.get(prefix)
+        if month:
+            try:
+                # Default to noon to avoid timezone boundary issues
+                return datetime.datetime(
+                    int(d['year']), month, int(d['day']),
+                    12, 0, 0
+                )
+            except ValueError:
+                pass
 
     # 2. YYYY-MM-DD pattern (date only)
     pattern_date = re.compile(
@@ -583,8 +627,6 @@ class PhotoCheckDateApp:
         # Populate entries from config
         if self.config['source_path']:
             self.src_entry.insert(0, self.config['source_path'])
-        if self.config['destination_path']:
-            self.dest_entry.insert(0, self.config['destination_path'])
             
         self.apply_current_theme()
         
@@ -592,7 +634,7 @@ class PhotoCheckDateApp:
         self.root.protocol("WM_DELETE_WINDOW", self.on_exit)
 
     def on_exit(self):
-        save_config(self.current_theme, self.src_entry.get().strip(), self.dest_entry.get().strip())
+        save_config(self.current_theme, self.src_entry.get().strip())
         self.root.destroy()
 
     def create_widgets(self):
@@ -630,7 +672,7 @@ class PhotoCheckDateApp:
         self.content_frame.columnconfigure(1, weight=1)
         
         # Source Files path
-        self.src_label = tk.Label(self.content_frame, text="Початкові файли:", font=("Segoe UI", 10, "bold"))
+        self.src_label = tk.Label(self.content_frame, text="Папка з файлами:", font=("Segoe UI", 10, "bold"))
         self.src_label.grid(row=0, column=0, sticky='w', pady=(5, 2))
         
         self.src_entry = tk.Entry(self.content_frame, font=("Segoe UI", 10), relief='flat', bd=1, highlightthickness=1)
@@ -639,23 +681,9 @@ class PhotoCheckDateApp:
         self.src_browse_btn = tk.Button(self.content_frame, text="Огляд...", font=("Segoe UI", 10), command=self.browse_src, padx=10)
         self.src_browse_btn.grid(row=1, column=2, sticky='e', ipady=2)
         
-        self.src_desc = tk.Label(self.content_frame, text="Оберіть папку, яка містить оригінальні фото- та відеофайли для аналізу.", font=("Segoe UI", 8, "italic"))
+        self.src_desc = tk.Label(self.content_frame, text="Оберіть папку, в якій буде змінено дату створення та модифікації файлів прямо на місці (in-place).", font=("Segoe UI", 8, "italic"))
         self.src_desc.is_subtext = True
-        self.src_desc.grid(row=2, column=0, columnspan=3, sticky='w', pady=(2, 10))
-        
-        # Results path
-        self.dest_label = tk.Label(self.content_frame, text="Результати:", font=("Segoe UI", 10, "bold"))
-        self.dest_label.grid(row=3, column=0, sticky='w', pady=(5, 2))
-        
-        self.dest_entry = tk.Entry(self.content_frame, font=("Segoe UI", 10), relief='flat', bd=1, highlightthickness=1)
-        self.dest_entry.grid(row=4, column=0, columnspan=2, sticky='we', ipady=4, padx=(0, 5))
-        
-        self.dest_browse_btn = tk.Button(self.content_frame, text="Огляд...", font=("Segoe UI", 10), command=self.browse_dest, padx=10)
-        self.dest_browse_btn.grid(row=4, column=2, sticky='e', ipady=2)
-        
-        self.dest_desc = tk.Label(self.content_frame, text="Оберіть папку, куди будуть збережені копії файлів із відновленими атрибутами дати.", font=("Segoe UI", 8, "italic"))
-        self.dest_desc.is_subtext = True
-        self.dest_desc.grid(row=5, column=0, columnspan=3, sticky='w', pady=(2, 5))
+        self.src_desc.grid(row=2, column=0, columnspan=3, sticky='w', pady=(2, 5))
         
         # 3. Log console frame
         self.log_frame = tk.Frame(self.root, padx=15, pady=5)
@@ -695,7 +723,7 @@ class PhotoCheckDateApp:
     def toggle_theme(self):
         self.current_theme = 'light' if self.current_theme == 'dark' else 'dark'
         self.apply_current_theme()
-        save_config(self.current_theme, self.src_entry.get().strip(), self.dest_entry.get().strip())
+        save_config(self.current_theme, self.src_entry.get().strip())
 
     def apply_current_theme(self):
         colors = THEMES[self.current_theme]
@@ -786,17 +814,9 @@ class PhotoCheckDateApp:
             self.src_entry.delete(0, tk.END)
             self.src_entry.insert(0, os.path.normpath(path))
             
-    def browse_dest(self):
-        path = filedialog.askdirectory(title="Оберіть папку результатів")
-        if path:
-            self.dest_entry.delete(0, tk.END)
-            self.dest_entry.insert(0, os.path.normpath(path))
-
     def set_ui_state(self, state):
         self.src_entry.configure(state=state)
-        self.dest_entry.configure(state=state)
         self.src_browse_btn.configure(state=state)
-        self.dest_browse_btn.configure(state=state)
         self.start_btn.configure(state=state)
         self.help_btn.configure(state=state)
         self.theme_btn.configure(state=state)
@@ -830,36 +850,22 @@ class PhotoCheckDateApp:
 
     def start_processing(self):
         src_path = self.src_entry.get().strip()
-        dest_path = self.dest_entry.get().strip()
         
         if not src_path:
-            messagebox.showerror("Помилка", "Будь ласка, вкажіть початкову папку.")
+            messagebox.showerror("Помилка", "Будь ласка, вкажіть папку з файлами.")
             return
         if not os.path.isdir(src_path):
-            messagebox.showerror("Помилка", "Початкова папка не існує.")
-            return
-        if not dest_path:
-            messagebox.showerror("Помилка", "Будь ласка, вкажіть папку результатів.")
+            messagebox.showerror("Помилка", "Вказана папка не існує.")
             return
             
+        # Warn user about in-place modification
+        if not messagebox.askyesno("Увага", "Дати файлів будуть змінені прямо в обраній папці (без створення копій). Бажаєте продовжити?"):
+            return
+
         # Save settings to config
-        save_config(self.current_theme, src_path, dest_path)
+        save_config(self.current_theme, src_path)
         
         src_abs = os.path.abspath(src_path)
-        dest_abs = os.path.abspath(dest_path)
-        
-        if dest_abs == src_abs or dest_abs.startswith(src_abs + os.sep):
-            messagebox.showerror(
-                "Помилка", 
-                "Папка результатів не може бути самою початковою папкою або її підпапкою."
-            )
-            return
-            
-        try:
-            os.makedirs(dest_path, exist_ok=True)
-        except Exception as e:
-            messagebox.showerror("Помилка", f"Не вдалося створити папку результатів:\n{str(e)}")
-            return
             
         self.set_ui_state('disabled')
         
@@ -869,16 +875,16 @@ class PhotoCheckDateApp:
         
         self.worker_thread = threading.Thread(
             target=self.process_files_worker,
-            args=(src_abs, dest_abs)
+            args=(src_abs,)
         )
         self.worker_thread.daemon = True
         self.worker_thread.start()
 
-    def process_files_worker(self, src_dir, dest_dir):
+    def process_files_worker(self, src_dir):
         self.log("Розпочато сканування файлів...", "INFO")
         
-        photo_exts = ('.jpg', '.jpeg', '.png', '.tiff', '.heic', '.heif')
-        video_exts = ('.mp4', '.mov')
+        photo_exts = ('.jpg', '.jpeg', '.png', '.tiff', '.heic', '.heif', '.dng', '.webp', '.gif')
+        video_exts = ('.mp4', '.mov', '.3gp', '.avi')
         audio_exts = ('.mp3',)
         supported_exts = photo_exts + video_exts + audio_exts
         
@@ -893,7 +899,7 @@ class PhotoCheckDateApp:
                     
         total_files = len(files_to_process)
         if total_files == 0:
-            self.log("У початковій папці не знайдено підтримуваних файлів.", "WARNING")
+            self.log("У вказаній папці не знайдено підтримуваних файлів.", "WARNING")
             self.root.after(0, self.processing_finished, 0, 0)
             return
             
@@ -942,15 +948,9 @@ class PhotoCheckDateApp:
                     date_found = datetime.datetime.now()
                     source_info = "поточний час (помилка зчитування атрибутів)"
             
-            target_file = os.path.join(dest_dir, rel_path)
-            target_dir = os.path.dirname(target_file)
-            
             try:
-                os.makedirs(target_dir, exist_ok=True)
-                shutil.copy2(src_file, target_file)
-                
-                # Apply attributes
-                set_file_times(target_file, date_found)
+                # Apply attributes directly to the source file
+                set_file_times(src_file, date_found)
                 self.log(f"  -> Встановлено дату: {date_found.strftime('%Y-%m-%d %H:%M:%S')} ({source_info}).", "SUCCESS")
                 success_count += 1
             except Exception as e:
