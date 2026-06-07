@@ -943,7 +943,12 @@ class PhotoCheckDateApp:
             
             # 2b. Google Photos Takeout JSON sidecar (Fallback before filesystem)
             if not date_found:
-                json_paths = [src_file + ".json", os.path.splitext(src_file)[0] + ".json"]
+                json_paths = [
+                    src_file + ".json",
+                    src_file + ".supplemental-metadata.json",
+                    os.path.splitext(src_file)[0] + ".json",
+                    os.path.splitext(src_file)[0] + ".supplemental-metadata.json"
+                ]
                 for jp in json_paths:
                     if os.path.exists(jp):
                         try:

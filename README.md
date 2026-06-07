@@ -48,7 +48,7 @@
 *   Використовуються теги `TDRC` (Recording Time), `TYER` (рік), `TDAT` (день/місяць) та `TIME` (години/хвилини).
 
 ### 5. Супутні файли Google Takeout JSON (Для будь-яких файлів)
-Якщо внутрішні метадані відсутні, програма шукає однойменний файл `.json` (наприклад, `photo.jpg.json` або `photo.json`), який створюється при експорті з Google Photos Takeout:
+Якщо внутрішні метадані відсутні, програма шукає супутній файл `.json` або `.supplemental-metadata.json` (наприклад, `photo.jpg.json`, `photo.json`, `photo.jpg.supplemental-metadata.json` або `photo.supplemental-metadata.json`), який створюється при експорті з Google Photos Takeout:
 *   Видобувається позначка `photoTakenTime` або `creationTime` та використовується як оригінальна дата зйомки.
 
 ### 6. Системні атрибути файлу (Фінальний варіант)

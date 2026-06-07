@@ -12,3 +12,9 @@ ENV/
 
 # Configuration
 config.json
+
+# Scratch and test files
+scratch/
+
+# Examples (large media files)
+example/
