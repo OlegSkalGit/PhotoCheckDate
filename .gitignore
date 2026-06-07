@@ -12,6 +12,7 @@ ENV/
 
 # Configuration
 config.json
+log.txt
 
 # Scratch and test files
 scratch/

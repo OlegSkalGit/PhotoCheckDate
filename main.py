@@ -645,7 +645,6 @@ class PhotoCheckDateApp:
     def create_widgets(self):
         # Grid settings
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(2, weight=1)
 
         # 1. Header frame
         self.header_frame = tk.Frame(self.root)
@@ -690,23 +689,10 @@ class PhotoCheckDateApp:
         self.src_desc.is_subtext = True
         self.src_desc.grid(row=2, column=0, columnspan=3, sticky='w', pady=(2, 5))
         
-        # 3. Log console frame
-        self.log_frame = tk.Frame(self.root, padx=15, pady=5)
-        self.log_frame.is_card = True
-        self.log_frame.grid(row=2, column=0, sticky='nsew', padx=15, pady=5)
-        self.log_frame.columnconfigure(0, weight=1)
-        self.log_frame.rowconfigure(1, weight=1)
-        
-        self.log_label = tk.Label(self.log_frame, text="Журнал роботи:", font=("Segoe UI", 10, "bold"))
-        self.log_label.grid(row=0, column=0, sticky='w', pady=(0, 2))
-        
-        self.log_console = ScrolledText(self.log_frame, font=("Courier New", 9), wrap='word', state='disabled', relief='flat', bd=0)
-        self.log_console.grid(row=1, column=0, sticky='nsew')
-        
-        # 4. Progress and start processing frame
+        # 3. Progress and start processing frame
         self.control_frame = tk.Frame(self.root, padx=15, pady=10)
         self.control_frame.is_card = False
-        self.control_frame.grid(row=3, column=0, sticky='we', padx=15, pady=10)
+        self.control_frame.grid(row=2, column=0, sticky='we', padx=15, pady=10)
         self.control_frame.columnconfigure(0, weight=1)
         
         self.progress_label = tk.Label(self.control_frame, text="Готово до роботи", font=("Segoe UI", 9))
@@ -738,8 +724,6 @@ class PhotoCheckDateApp:
         theme_btn_text = "Світла тема ☀️" if self.current_theme == 'dark' else "Темна тема 🌙"
         self.theme_btn.configure(text=theme_btn_text)
         
-        self.configure_log_tags(colors)
-        
         self.style = ttk.Style()
         self.style.theme_use('default')
         self.style.configure(
@@ -756,12 +740,6 @@ class PhotoCheckDateApp:
             self.help_window.configure(bg=colors['bg'])
             self.configure_text_tags(self.help_text_widget, colors)
             apply_theme_to_widget(self.help_window, colors)
-
-    def configure_log_tags(self, colors):
-        self.log_console.tag_configure('info', foreground=colors['text'])
-        self.log_console.tag_configure('success', foreground=colors['success'])
-        self.log_console.tag_configure('warning', foreground=colors['warning'])
-        self.log_console.tag_configure('error', foreground=colors['error'])
 
     def configure_text_tags(self, text_widget, colors):
         text_widget.configure(bg=colors['log_bg'], fg=colors['text'])
@@ -830,10 +808,12 @@ class PhotoCheckDateApp:
         self.root.after(0, self._log_main_thread, message, level)
         
     def _log_main_thread(self, message, level):
-        self.log_console.configure(state='normal')
-        self.log_console.insert('end', message + '\n', level.lower())
-        self.log_console.configure(state='disabled')
-        self.log_console.see('end')
+        if hasattr(self, 'log_file') and self.log_file:
+            try:
+                self.log_file.write(f"[{level}] {message}\n")
+                self.log_file.flush()
+            except Exception:
+                pass
 
     def setup_progress(self, total):
         self.progress_bar.configure(maximum=total, value=0)
@@ -847,11 +827,35 @@ class PhotoCheckDateApp:
     def processing_finished(self, total, success):
         self.set_ui_state('normal')
         self.progress_label.configure(text="Обробку завершено")
-        self.log(f"\nРоботу завершено! Оброблено файлів: {total}. Змінено атрибути для: {success}.", "SUCCESS")
+        self.log(f"Роботу завершено! Оброблено файлів: {total}. Змінено атрибути для: {success}.", "SUCCESS")
+        
+        # Close log file
+        if hasattr(self, 'log_file') and self.log_file:
+            try:
+                self.log_file.close()
+                self.log_file = None
+            except Exception:
+                pass
+                
         messagebox.showinfo(
             "Завершено", 
             f"Успішно оброблено файлів: {total}.\nЗмінено атрибутів дати: {success}."
         )
+        
+        # Ask to open log file
+        if os.path.exists(self.log_file_path):
+            if messagebox.askyesno("Журнал обробки", "Бажаєте відкрити файл журналу роботи (log.txt)?"):
+                try:
+                    import platform
+                    import subprocess
+                    if platform.system() == 'Windows':
+                        os.startfile(self.log_file_path)
+                    elif platform.system() == 'Darwin':
+                        subprocess.call(('open', self.log_file_path))
+                    else:
+                        subprocess.call(('xdg-open', self.log_file_path))
+                except Exception as e:
+                    messagebox.showerror("Помилка", f"Не вдалося відкрити файл журналу: {str(e)}")
 
     def start_processing(self):
         src_path = self.src_entry.get().strip()
@@ -872,11 +876,15 @@ class PhotoCheckDateApp:
         
         src_abs = os.path.abspath(src_path)
             
+        # Open log file in program folder
+        self.log_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "log.txt")
+        try:
+            self.log_file = open(self.log_file_path, 'w', encoding='utf-8')
+        except Exception as e:
+            messagebox.showerror("Помилка", f"Не вдалося створити файл журналу: {str(e)}")
+            return
+
         self.set_ui_state('disabled')
-        
-        self.log_console.configure(state='normal')
-        self.log_console.delete('1.0', tk.END)
-        self.log_console.configure(state='disabled')
         
         self.worker_thread = threading.Thread(
             target=self.process_files_worker,
