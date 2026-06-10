@@ -430,29 +430,57 @@ def set_file_times(filepath, dt):
             import ctypes
             from ctypes import wintypes
             
-            CreateFileW = ctypes.windll.kernel32.CreateFileW
-            SetFileTime = ctypes.windll.kernel32.SetFileTime
-            CloseHandle = ctypes.windll.kernel32.CloseHandle
+            kernel32 = ctypes.windll.kernel32
+            
+            CreateFileW = kernel32.CreateFileW
+            CreateFileW.argtypes = [
+                wintypes.LPCWSTR,  # lpFileName
+                wintypes.DWORD,    # dwDesiredAccess
+                wintypes.DWORD,    # dwShareMode
+                wintypes.LPVOID,   # lpSecurityAttributes
+                wintypes.DWORD,    # dwCreationDisposition
+                wintypes.DWORD,    # dwFlagsAndAttributes
+                wintypes.HANDLE    # hTemplateFile
+            ]
+            CreateFileW.restype = wintypes.HANDLE
+            
+            SetFileTime = kernel32.SetFileTime
+            SetFileTime.argtypes = [
+                wintypes.HANDLE,                 # hFile
+                ctypes.POINTER(wintypes.FILETIME), # lpCreationTime
+                ctypes.POINTER(wintypes.FILETIME), # lpLastAccessTime
+                ctypes.POINTER(wintypes.FILETIME), # lpLastWriteTime
+            ]
+            SetFileTime.restype = wintypes.BOOL
+            
+            CloseHandle = kernel32.CloseHandle
+            CloseHandle.argtypes = [wintypes.HANDLE]
+            CloseHandle.restype = wintypes.BOOL
             
             timestamp = int((epoch_time * 10000000) + 116444736000000000)
             low_dword = timestamp & 0xFFFFFFFF
             high_dword = (timestamp >> 32) & 0xFFFFFFFF
             ctime = wintypes.FILETIME(low_dword, high_dword)
             
+            # Use Share Mode = 7 (FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE)
+            # to prevent sharing violations.
             handle = CreateFileW(
                 filepath, 
                 0x0100, # FILE_WRITE_ATTRIBUTES
-                0,      # Share mode
+                7,      # Share mode: read, write, delete
                 None,   # Security attributes
                 3,      # OPEN_EXISTING
                 128,    # FILE_ATTRIBUTE_NORMAL
                 None
             )
             
-            if handle != -1 and handle is not None:
-                # Update creation time, access time, and write time to match target datetime
-                SetFileTime(handle, ctypes.byref(ctime), ctypes.byref(ctime), ctypes.byref(ctime))
+            INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
+            if handle != INVALID_HANDLE_VALUE and handle is not None and handle != 0:
+                res = SetFileTime(handle, ctypes.byref(ctime), ctypes.byref(ctime), ctypes.byref(ctime))
                 CloseHandle(handle)
+                # Fallback to os.utime if SetFileTime fails
+                if not res:
+                    os.utime(filepath, (epoch_time, epoch_time))
             else:
                 os.utime(filepath, (epoch_time, epoch_time))
         except Exception:
